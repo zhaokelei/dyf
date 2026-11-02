@@ -1,0 +1,70 @@
+# 依赖
+node_modules/
+vendor/
+/runtime/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# 数据库与数据备份
+*.db
+*.sqlite
+*.sqlite3
+/storage/backups/*.sql
+/信息.xlsx
+/tests/_import_filled.xlsx
+
+# 环境配置
+.env
+.env.backup
+.env.production
+config.env
+
+# 日志与缓存
+*.log
+logs/
+/storage/pail
+/storage/*.key
+.phpunit.result.cache
+/.phpunit.cache
+/.phpactor.json
+/tests/screenshots/
+
+# 构建产物与工具文件
+/public/build
+/public/hot
+/public/storage
+/public/fonts-manifest.dev.json
+/composer.phar
+_ide_helper.php
+Homestead.json
+Homestead.yaml
+
+# IDE
+.vscode/
+.idea/
+.nova/
+.zed/
+.codex/
+.cursor/
+*.swp
+*.swo
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 本地运维脚本与补丁包（不纳入仓库）
+/deploy_*.py
+/deploy_*.sh
+/check_*.py
+/cleanup_*.py
+/verify_*.py
+/query_*.py
+/*.tar.gz
+
+# 本地压缩包
+/*.zip
