@@ -357,7 +357,7 @@ class ReviewController extends Controller
         $students = $studentsQuery
             ->orderBy('class_name')
             ->orderBy('student_id')
-            ->get(['id', 'name', 'student_id', 'class_name']);
+            ->get(['id', 'name', 'student_id', 'class_name', 'role']);
 
         $categories = ScoreCategory::query()
             ->where('type', 'deduct')

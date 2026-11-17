@@ -14,6 +14,7 @@ import Modal from '@/components/ui/Modal.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EvidenceGallery from '@/components/ui/EvidenceGallery.vue';
 import Field from '@/components/ui/Field.vue';
+import UserPicker from '@/components/ui/UserPicker.vue';
 import Button from '@/components/ui/Button.vue';
 import { formatDate, groupScoreRange, signedScore } from '@/lib/format';
 import { applicationEvidenceFiles } from '@/lib/evidence';
@@ -979,12 +980,11 @@ function submitBulk() {
         >
             <div v-if="deductionOpen" class="space-y-4">
                 <Field label="学生" :error="deductionForm.errors.student_id" required>
-                    <select v-model="deductionForm.student_id" class="input">
-                        <option value="">请选择学生</option>
-                        <option v-for="student in deduction.students ?? []" :key="student.id" :value="student.id">
-                            {{ student.name }} · {{ student.student_id }} · {{ student.class_name }}
-                        </option>
-                    </select>
+                    <UserPicker
+                        v-model="deductionForm.student_id"
+                        :users="deduction.students ?? []"
+                        placeholder="搜索姓名或学号"
+                    />
                 </Field>
                 <Field label="扣分类别" :error="deductionForm.errors.category_id" required>
                     <select v-model="deductionForm.category_id" class="input">
