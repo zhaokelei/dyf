@@ -304,6 +304,62 @@ class ClassAdminGroupReviewAndLeaderboardDetailTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_review_center_student_records_are_scoped_by_role(): void
+    {
+        $counselor = $this->makeUser('counselor-records', '辅导记录', 'class_admin');
+        $this->assignClassAdmin($counselor, $this->classA);
+
+        $studentA = $this->makeStudent('2603010', '一班记录', $this->classA);
+        $studentB = $this->makeStudent('2603011', '二班记录', $this->classB);
+
+        $this->makeRecord($studentA, $this->semester, 2);
+        $this->makeRecord($studentA, $this->previousSemester, -1);
+
+        $this->actingAs($counselor)
+            ->getJson("/admin/review/students/{$studentA->id}/records")
+            ->assertOk()
+            ->assertJsonPath('student.id', $studentA->id)
+            ->assertJsonCount(2, 'summary.records');
+
+        $this->actingAs($counselor)
+            ->getJson("/admin/review/students/{$studentB->id}/records")
+            ->assertForbidden();
+
+        $this->actingAs($this->admin)
+            ->getJson("/admin/review/students/{$studentB->id}/records")
+            ->assertOk();
+
+        $officer = $this->makeStudent('2603012', '班干部记录', $this->classA);
+        DB::table('class_officer_user')->insert([
+            'user_id' => $officer->id,
+            'class_id' => $this->classA->id,
+            'granted_by' => $this->admin->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($officer)
+            ->getJson("/officer/review/students/{$studentA->id}/records")
+            ->assertOk()
+            ->assertJsonPath('student.id', $studentA->id);
+
+        $this->actingAs($officer)
+            ->getJson("/officer/review/students/{$studentB->id}/records")
+            ->assertForbidden();
+
+        $this->actingAs($officer)
+            ->getJson("/officer/review/students/{$officer->id}/records")
+            ->assertOk();
+
+        $this->actingAs($studentA)
+            ->getJson("/admin/review/students/{$studentA->id}/records")
+            ->assertForbidden();
+
+        $this->actingAs($this->admin)
+            ->getJson("/admin/review/students/{$this->admin->id}/records")
+            ->assertNotFound();
+    }
+
     private function makeUser(string $username, string $name, string $role, array $attributes = []): User
     {
         return User::create(array_merge([

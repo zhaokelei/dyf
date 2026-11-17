@@ -79,6 +79,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/applications/{application}/cancel', [ReviewController::class, 'cancelPersonalApproval'])->name('officer.review.cancel');
             Route::put('/applications/{application}/update', [ReviewController::class, 'updateApprovedPersonal'])->name('officer.review.update');
             Route::get('/review/leaderboard/export', [ReviewController::class, 'exportReviewerLeaderboard'])->name('officer.review.leaderboard.export');
+            Route::get('/review/students/{student}/records', [ReviewController::class, 'studentRecords'])->name('officer.review.students.records');
             Route::post('/review/bulk', [ReviewController::class, 'bulk'])->name('officer.review.bulk');
             Route::delete('/applications/{application}', [ReviewController::class, 'destroyPersonal'])->name('officer.review.destroy');
             Route::post('/deductions', [ScoreController::class, 'storeDeduction'])->name('officer.deductions.store');
@@ -108,6 +109,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/applications/{application}/cancel', [ReviewController::class, 'cancelPersonalApproval'])->name('review.applications.cancel');
         Route::put('/applications/{application}/update', [ReviewController::class, 'updateApprovedPersonal'])->name('review.applications.update');
         Route::get('/review/leaderboard/export', [ReviewController::class, 'exportReviewerLeaderboard'])->name('review.leaderboard.export');
+        Route::get('/review/students/{student}/records', [ReviewController::class, 'studentRecords'])->name('review.students.records');
         Route::post('/review/bulk', [ReviewController::class, 'bulk'])->name('review.bulk');
         Route::delete('/applications/{application}', [ReviewController::class, 'destroyPersonal'])->name('review.applications.destroy');
         Route::put('/group-applications/{groupApplication}/approve', [ReviewController::class, 'approveGroup'])->name('review.groups.approve');

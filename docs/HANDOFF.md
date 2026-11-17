@@ -194,7 +194,7 @@ runtime\php\php.exe artisan serve --host=0.0.0.0 --port=8080
 | `DashboardController.php` | 工作台数据（按角色与范围） |
 | `ApplicationController.php` | 个人申请 CRUD、撤回、图片证明预览/下载、我的成绩导出 |
 | `GroupApplicationController.php` | 教师/学生集体申请 CRUD、成员导入、证明预览/下载 |
-| `ReviewController.php` | 审核中心列表、个人/集体审核、批量审核、核定分值、删除、审核端排行榜导出 |
+| `ReviewController.php` | 审核中心列表、个人/集体审核、批量审核、核定分值、删除、审核端排行榜导出、审核页学生明细 JSON |
 | `AppealController.php` | 学生申诉、管理端申诉列表/审核、证明下载 |
 | `ScoreController.php` | 排行榜、排行榜导出、成绩管理、手工录入、扣分、学生详情 |
 | `StatisticsController.php` | 数据统计 |
@@ -244,7 +244,7 @@ runtime\php\php.exe artisan serve --host=0.0.0.0 --port=8080
 | `layouts/AuthenticatedLayout.vue` | 深色可折叠侧栏、顶部栏、面包屑、标签页、主题色、移动端底部导航、导航项按角色生成 |
 | `layouts/GuestLayout.vue` | 登录/注册页布局 |
 | `app.js` | Inertia 应用启动、全局错误处理 |
-| `components/ui/*` | Card、Button、Badge、Modal、ConfirmDialog、Tabs、Toggle、Pagination、PeriodSelect、EvidenceGallery、UserPicker 等 |
+| `components/ui/*` | Card、Button、Badge、Modal、ConfirmDialog、Tabs、Toggle、Pagination、PeriodSelect、EvidenceGallery（含图片缩放）、UserPicker、StudentRecordsModal 等 |
 | `components/ScoreSummary.vue` | 总分/加分/扣分/基础分汇总卡 |
 | `lib/format.js` | 日期、分值、来源标签 |
 | `lib/evidence.js` | 证明材料 URL 与预览 |
@@ -268,7 +268,7 @@ runtime\php\php.exe artisan serve --host=0.0.0.0 --port=8080
 | `GroupApplications/Index.vue` | `/teacher/group-applications` | 教师集体申请列表 |
 | `GroupApplications/Create.vue` | `/teacher/group-applications/create` | 教师发起集体申请 |
 | `GroupApplications/Show.vue` | `/teacher/group-applications/{id}` | 教师查看集体申请 |
-| `Review/Index.vue` | `/admin/review`、`/officer/review` | 审核中心（三标签 + 班级筛选 + 班内排行榜 + 扣分） |
+| `Review/Index.vue` | `/admin/review`、`/officer/review` | 审核中心（三标签 + 班级筛选 + 班内排行榜 + 扣分 + 学生姓名弹窗明细） |
 | `Review/GroupShow.vue` | `/admin/review/groups/{id}` | 集体申请审核详情 |
 | `Appeals/Index.vue` | `/appeals` | 学生申诉 |
 | `Appeals/AdminIndex.vue` | `/admin/appeals` | 申诉审核（含班级筛选） |
@@ -570,7 +570,43 @@ users n─n (college, major, grade)（grade_admin_user）
 | `class_admin` | 授权年级/班级 |
 | `student` | 无排行榜路由权限，直接访问 403 |
 
-### 7.7 排行榜与导出
+### 7.7 本次需求 4：审核中心学生德育分明细弹窗
+
+目标：在审核中心点击学生姓名，用站内弹窗（与证明材料预览同一套 `Modal`）展示该生全部德育分记录，不新开页面。
+
+修改点：
+
+- `routes/web.php`：新增两条 JSON 接口
+  ```php
+  // 管理端（admin / college_admin / class_admin）
+  Route::get('/review/students/{student}/records', [ReviewController::class, 'studentRecords'])
+      ->name('review.students.records');
+  // 班干部（student + 任命）
+  Route::get('/review/students/{student}/records', [ReviewController::class, 'studentRecords'])
+      ->name('officer.review.students.records');
+  ```
+- `ReviewController::studentRecords`：
+  - 目标必须是 `role=student`，否则 404；
+  - 管理端走 `AccessScope::canAccessStudent`（管理员全部、学院管理员本院、辅导员管辖班级）；
+  - 班干部端允许本人与 `officerStudentIds` 内的同班同学，其余 403；
+  - 返回 `student` 基本信息 + `ScoreService::studentSummary($student)`（不传学期 ID，即全部学期，含已撤销记录与撤销原因）。
+- `resources/js/components/ui/StudentRecordsModal.vue`：新增弹窗组件，打开时 `fetch` 接口（同源 Cookie 会话），展示累计总分、加分/扣分合计、有效/已撤销记录数，以及逐条记录（日期、类别、分值、学期、来源、说明、撤销原因）。请求带序号防抖，关闭时清空。
+- `resources/js/pages/Review/Index.vue`：班内排行榜、个人申请（移动/桌面）、手工录入（移动/桌面）的学生姓名改为可点击按钮，统一打开弹窗；管理端接口前缀 `/admin/review`，班干部 `/officer/review`。
+- `resources/js/pages/Review/GroupShow.vue`：集体审核详情成员表的姓名同样可点击打开同一弹窗。
+
+权限结论与 7.6 的排行榜详情一致；区别是本弹窗固定展示“全部学期”，不提供周期切换。
+
+### 7.8 本次需求 5：证明材料图片缩放
+
+- `resources/js/components/ui/EvidenceGallery.vue`（学生端与审核端共用）预览弹窗新增缩放：
+  - 缩放范围 0.5–3 倍，步进 25%，显示当前百分比；
+  - 图片容器改为 `overflow-auto`，放大后可滚动查看；
+  - 图片 `transform: scale(zoom)`，放大时 `transform-origin: top left`（向右下扩展、可滚动），缩小时居中；
+  - 切换上一张/下一张、点击缩略图或关闭弹窗时自动恢复 100%；
+  - 仅图片显示缩放控件，PDF 预览保持原样。
+- 未改后端与存储，证明材料仍通过既有 preview/download 路由输出。
+
+### 7.9 排行榜与导出
 
 - `PeriodResolver` 解析周期：总排行、本周、本月、自定义、学期、学年汇总。
 - 排行范围：全校/学院/年级/班级；专业仅作为筛选维度。
@@ -578,21 +614,21 @@ users n─n (college, major, grade)（grade_admin_user）
 - 导出 `LeaderboardExportService` 生成 3 个工作表：排行榜、加减分明细、学期汇总。
 - 审核端导出自动限定当前班级/范围，并用 `AccessScope` 校验。
 
-### 7.8 申诉
+### 7.10 申诉
 
 1. 学生只能对本人“扣分”且未撤销的记录发起申诉。
 2. 管理端按范围列出，班级筛选可用。
 3. 通过：申诉状态 `approved`，对应扣分记录软撤销，总分恢复；写审计。
 4. 驳回：必须填写原因。
 
-### 7.9 组织管理与导入
+### 7.11 组织管理与导入
 
 - 学院 → 专业 → 班级层级维护；删除前校验下级数据。
 - 辅导员授权两种方式：直接班级、专业+年级批量。
 - 用户导入：模板列包含角色识别字段；学生按“学院+专业+年级+班级”匹配班级；教师只需学院；导入后按角色启用。
 - 教师注册：邀请码在系统设置中配置，校验通过即启用。
 
-### 7.10 安装器
+### 7.12 安装器
 
 `public/install.php`：
 1. 检查 PHP 扩展、目录可写、数据库连接。
@@ -800,6 +836,9 @@ runtime/php/php.exe vendor/bin/pint
 - `resources/js/pages/Leaderboard/Index.vue`
 - `resources/js/pages/Students/Show.vue`
 - `resources/js/components/ui/PeriodSelect.vue`
+- `resources/js/components/ui/UserPicker.vue`
+- `resources/js/components/ui/StudentRecordsModal.vue`
+- `resources/js/components/ui/EvidenceGallery.vue`
 
 测试与文档：
 - `tests/Feature/ClassAdminGroupReviewAndLeaderboardDetailTest.php`

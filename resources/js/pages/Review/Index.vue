@@ -15,6 +15,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EvidenceGallery from '@/components/ui/EvidenceGallery.vue';
 import Field from '@/components/ui/Field.vue';
 import UserPicker from '@/components/ui/UserPicker.vue';
+import StudentRecordsModal from '@/components/ui/StudentRecordsModal.vue';
 import Button from '@/components/ui/Button.vue';
 import { formatDate, groupScoreRange, signedScore } from '@/lib/format';
 import { applicationEvidenceFiles } from '@/lib/evidence';
@@ -79,10 +80,27 @@ const deleteTarget = ref(null);
 const deleteProcessing = ref(false);
 const manualDeleteTarget = ref(null);
 const manualDeleteProcessing = ref(false);
+const recordsStudent = ref(null);
 
 const isOfficer = computed(() => props.officerMode);
 const currentUserId = computed(() => page.props.auth.user?.id);
 const reviewBase = computed(() => (isOfficer.value ? '/officer/review' : '/admin/review'));
+const recordsEndpoint = computed(() => (recordsStudent.value
+    ? `${reviewBase.value}/students/${recordsStudent.value.id}/records`
+    : ''));
+
+function openStudentRecords(student) {
+    if (!student?.id) {
+        return;
+    }
+
+    recordsStudent.value = {
+        id: student.id,
+        name: student.name,
+        student_id: student.student_id,
+        class_name: student.class_name,
+    };
+}
 const reviewIsVolunteer = computed(() => reviewTarget.value?.category?.code === 'volunteer');
 const canReviewPersonal = computed(
     () => !!permissions.value.can_review || !!permissions.value.is_class_officer,
@@ -438,7 +456,14 @@ function submitBulk() {
                         </span>
                         <div class="min-w-0 flex-1">
                             <p class="truncate font-medium text-slate-800">
-                                {{ row.name }}
+                                <button
+                                    type="button"
+                                    class="max-w-full truncate text-left underline-offset-2 hover:text-brand-600 hover:underline"
+                                    title="查看该学生全部德育分记录"
+                                    @click="openStudentRecords(row)"
+                                >
+                                    {{ row.name }}
+                                </button>
                                 <span v-if="row.is_self" class="ml-1 text-[11px] font-normal text-brand-600">我</span>
                             </p>
                             <p class="text-xs text-slate-400">{{ row.student_id }} · {{ row.class_name }}</p>
@@ -539,7 +564,14 @@ function submitBulk() {
                         />
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-1.5">
-                                <span class="text-sm font-semibold text-slate-800">{{ item.user?.name }}</span>
+                                <button
+                                    type="button"
+                                    class="text-left text-sm font-semibold text-slate-800 underline-offset-2 hover:text-brand-600 hover:underline"
+                                    title="查看该学生全部德育分记录"
+                                    @click="openStudentRecords(item.user)"
+                                >
+                                    {{ item.user?.name }}
+                                </button>
                                 <Badge :status="item.status" />
                             </div>
                             <p class="text-xs text-slate-400">{{ item.user?.student_id }} · {{ item.user?.class_name }} · {{ item.semester?.name }}</p>
@@ -597,7 +629,14 @@ function submitBulk() {
                                     />
                                 </td>
                                 <td>
-                                    <p class="font-medium text-slate-800">{{ item.user?.name }}</p>
+                                    <button
+                                        type="button"
+                                        class="block max-w-full truncate text-left font-medium text-slate-800 underline-offset-2 hover:text-brand-600 hover:underline"
+                                        title="查看该学生全部德育分记录"
+                                        @click="openStudentRecords(item.user)"
+                                    >
+                                        {{ item.user?.name }}
+                                    </button>
                                     <p class="text-xs text-slate-400">{{ item.user?.student_id }} · {{ item.user?.class_name }}</p>
                                 </td>
                                 <td>
@@ -756,7 +795,14 @@ function submitBulk() {
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0 flex-1">
                                 <div class="flex flex-wrap items-center gap-1.5">
-                                    <span class="text-sm font-semibold text-slate-800">{{ item.user?.name }}</span>
+                                    <button
+                                        type="button"
+                                        class="text-left text-sm font-semibold text-slate-800 underline-offset-2 hover:text-brand-600 hover:underline"
+                                        title="查看该学生全部德育分记录"
+                                        @click="openStudentRecords(item.user)"
+                                    >
+                                        {{ item.user?.name }}
+                                    </button>
                                     <Badge :status="item.category?.type" />
                                     <Badge v-if="item.revoked_at" status="withdrawn">已撤销</Badge>
                                     <Badge v-else status="active">有效</Badge>
@@ -806,7 +852,14 @@ function submitBulk() {
                         <tbody>
                             <tr v-for="item in manual.data" :key="`manual-${item.id}`">
                                 <td>
-                                    <p class="font-medium text-slate-800">{{ item.user?.name }}</p>
+                                    <button
+                                        type="button"
+                                        class="block max-w-full truncate text-left font-medium text-slate-800 underline-offset-2 hover:text-brand-600 hover:underline"
+                                        title="查看该学生全部德育分记录"
+                                        @click="openStudentRecords(item.user)"
+                                    >
+                                        {{ item.user?.name }}
+                                    </button>
                                     <p class="text-xs text-slate-400">{{ item.user?.student_id }} · {{ item.user?.class_name }}</p>
                                 </td>
                                 <td>
@@ -1072,6 +1125,13 @@ function submitBulk() {
             :loading="manualDeleteProcessing"
             @update:open="manualDeleteTarget = null"
             @confirm="submitManualDelete"
+        />
+
+        <StudentRecordsModal
+            :open="!!recordsStudent"
+            :student="recordsStudent"
+            :endpoint="recordsEndpoint"
+            @update:open="recordsStudent = null"
         />
     </AuthenticatedLayout>
 </template>

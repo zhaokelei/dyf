@@ -15,6 +15,7 @@ use App\Services\LeaderboardExportService;
 use App\Services\ScoreService;
 use App\Support\AccessScope;
 use App\Support\PageSize;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -171,6 +172,26 @@ class ReviewController extends Controller
                 'manual_status' => $manualStatus,
                 'board_class_id' => $request->integer('board_class_id') ?: null,
             ],
+        ]);
+    }
+
+    public function studentRecords(Request $request, User $student): JsonResponse
+    {
+        abort_unless($student->role === 'student', 404);
+
+        $user = $request->user();
+
+        if ($this->isOfficerMode($request)) {
+            $allowed = (int) $student->id === (int) $user->id
+                || in_array((int) $student->id, $this->access->officerStudentIds($user), true);
+            abort_unless($allowed, 403);
+        } else {
+            abort_unless($this->access->canAccessStudent($user, $student), 403);
+        }
+
+        return response()->json([
+            'student' => $student->only(['id', 'name', 'student_id', 'class_name', 'college', 'grade']),
+            'summary' => $this->scores->studentSummary($student),
         ]);
     }
 

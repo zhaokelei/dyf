@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { ChevronLeft, ChevronRight, Download, FileText, Images } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, Download, FileText, Images, RotateCcw, ZoomIn, ZoomOut } from 'lucide-vue-next';
 import Modal from '@/components/ui/Modal.vue';
 
 const props = defineProps({
@@ -10,12 +10,33 @@ const props = defineProps({
     columns: { type: String, default: 'grid-cols-2 sm:grid-cols-3' },
 });
 
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 3;
+const ZOOM_STEP = 0.25;
+
 const activeIndex = ref(null);
+const zoom = ref(1);
 const open = computed(() => activeIndex.value !== null && activeIndex.value < props.files.length);
 const active = computed(() => (open.value ? props.files[activeIndex.value] : null));
 
 function isPdf(file) {
     return /\.pdf(\?|$)/i.test(file?.name ?? '');
+}
+
+function setZoom(value) {
+    zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(value * 100) / 100));
+}
+
+function zoomIn() {
+    setZoom(zoom.value + ZOOM_STEP);
+}
+
+function zoomOut() {
+    setZoom(zoom.value - ZOOM_STEP);
+}
+
+function resetZoom() {
+    zoom.value = 1;
 }
 
 function openAt(index) {
@@ -64,6 +85,10 @@ watch(
         }
     },
 );
+
+watch(activeIndex, () => {
+    zoom.value = 1;
+});
 
 onMounted(() => document.addEventListener('keydown', onKeydown));
 onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
@@ -156,15 +181,21 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
             @update:open="close"
         >
             <div v-if="active" class="space-y-3">
-                <div class="flex min-h-[220px] items-center justify-center overflow-hidden rounded-xl bg-slate-100 p-2">
-                    <img
-                        v-if="!isPdf(active)"
-                        :src="active.preview"
-                        :alt="active.name"
-                        class="max-h-[58vh] w-auto max-w-full object-contain"
-                    />
+                <div
+                    v-if="!isPdf(active)"
+                    class="h-[58vh] overflow-auto rounded-xl bg-slate-100 p-2"
+                >
+                    <div class="flex h-full w-full items-center justify-center">
+                        <img
+                            :src="active.preview"
+                            :alt="active.name"
+                            class="max-h-full w-auto max-w-full object-contain transition-transform duration-200 ease-out"
+                            :style="{ transform: `scale(${zoom})`, transformOrigin: zoom > 1 ? 'top left' : 'center' }"
+                        />
+                    </div>
+                </div>
+                <div v-else class="flex min-h-[220px] items-center justify-center overflow-hidden rounded-xl bg-slate-100 p-2">
                     <iframe
-                        v-else
                         :src="active.preview"
                         :title="active.name"
                         class="h-[58vh] w-full rounded-lg bg-white"
@@ -197,10 +228,55 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
 
             <template #footer>
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <a :href="active?.download" class="btn-secondary !px-3 !py-2 text-xs">
-                        <Download class="h-3.5 w-3.5" />
-                        下载原图
-                    </a>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a :href="active?.download" class="btn-secondary !px-3 !py-2 text-xs">
+                            <Download class="h-3.5 w-3.5" />
+                            下载原图
+                        </a>
+                        <div
+                            v-if="active && !isPdf(active)"
+                            class="inline-flex items-center rounded-lg border border-slate-200 bg-white p-0.5"
+                        >
+                            <button
+                                type="button"
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                :disabled="zoom <= MIN_ZOOM"
+                                aria-label="缩小"
+                                title="缩小"
+                                @click="zoomOut"
+                            >
+                                <ZoomOut class="h-4 w-4" />
+                            </button>
+                            <button
+                                type="button"
+                                class="min-w-[3.25rem] rounded-md px-1 text-center text-xs font-medium tabular-nums text-slate-600 transition hover:bg-slate-100"
+                                title="恢复原始比例"
+                                @click="resetZoom"
+                            >
+                                {{ Math.round(zoom * 100) }}%
+                            </button>
+                            <button
+                                type="button"
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                :disabled="zoom >= MAX_ZOOM"
+                                aria-label="放大"
+                                title="放大"
+                                @click="zoomIn"
+                            >
+                                <ZoomIn class="h-4 w-4" />
+                            </button>
+                            <button
+                                type="button"
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                :disabled="zoom === 1"
+                                aria-label="恢复原始比例"
+                                title="恢复原始比例"
+                                @click="resetZoom"
+                            >
+                                <RotateCcw class="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
                     <div v-if="files.length > 1" class="flex items-center gap-2">
                         <button
                             type="button"

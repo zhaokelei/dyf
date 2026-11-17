@@ -10,6 +10,7 @@ import Field from '@/components/ui/Field.vue';
 import Button from '@/components/ui/Button.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import EvidenceGallery from '@/components/ui/EvidenceGallery.vue';
+import StudentRecordsModal from '@/components/ui/StudentRecordsModal.vue';
 import { formatDate, groupScoreRange, signedScore } from '@/lib/format';
 import { groupEvidenceFiles } from '@/lib/evidence';
 
@@ -54,6 +55,23 @@ const isStudentOrigin = computed(() => props.application.origin === 'student');
 const submitter = computed(() => (isStudentOrigin.value ? props.application.initiator : props.application.teacher));
 const evidenceFiles = computed(() => groupEvidenceFiles(props.application));
 const reviewBase = computed(() => (props.officerMode ? '/officer/review' : '/admin/review'));
+const recordsStudent = ref(null);
+const recordsEndpoint = computed(() => (recordsStudent.value
+    ? `${reviewBase.value}/students/${recordsStudent.value.id}/records`
+    : ''));
+
+function openStudentRecords(student) {
+    if (!student?.id) {
+        return;
+    }
+
+    recordsStudent.value = {
+        id: student.id,
+        name: student.name,
+        student_id: student.student_id,
+        class_name: student.class_name,
+    };
+}
 
 function approve() {
     processing.value = true;
@@ -251,7 +269,16 @@ function submitDelete() {
                     <tbody>
                         <tr v-for="member in members" :key="member.id">
                             <td class="font-mono text-xs text-slate-500">{{ member.student?.student_id }}</td>
-                            <td class="font-medium text-slate-700">{{ member.student?.name }}</td>
+                            <td>
+                                <button
+                                    type="button"
+                                    class="font-medium text-slate-700 underline-offset-2 hover:text-brand-600 hover:underline"
+                                    title="查看该学生全部德育分记录"
+                                    @click="openStudentRecords(member.student)"
+                                >
+                                    {{ member.student?.name }}
+                                </button>
+                            </td>
                             <td class="hidden sm:table-cell">{{ member.student?.class_name }}</td>
                             <td class="hidden md:table-cell">{{ member.student?.college }}</td>
                             <td class="text-right">{{ signedScore(member.score) }}</td>
@@ -301,6 +328,13 @@ function submitDelete() {
             :loading="deleting"
             @update:open="deleteOpen = false"
             @confirm="submitDelete"
+        />
+
+        <StudentRecordsModal
+            :open="!!recordsStudent"
+            :student="recordsStudent"
+            :endpoint="recordsEndpoint"
+            @update:open="recordsStudent = null"
         />
     </AuthenticatedLayout>
 </template>
