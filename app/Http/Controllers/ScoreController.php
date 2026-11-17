@@ -416,13 +416,33 @@ class ScoreController extends Controller
     public function studentDetail(Request $request, User $student): Response
     {
         abort_unless($student->role === 'student', 404);
-        abort_unless($this->access->canAccessStudent($request->user(), $student), 403);
-        $period = PeriodResolver::resolve($request);
+        abort_unless($this->access->canViewStudentProfile($request->user(), $student), 403);
+
+        if ((string) $request->input('period', 'all') === 'all') {
+            $period = [
+                'value' => 'all',
+                'scope' => 'all',
+                'label' => '全部时间',
+                'academic_year' => null,
+                'term' => null,
+                'semester_ids' => null,
+                'semester' => null,
+            ];
+            $semesterIds = null;
+        } else {
+            $period = PeriodResolver::resolve($request);
+            $semesterIds = $period['semester_ids'];
+        }
+
+        $detailUrl = $request->routeIs('leaderboard.students.show')
+            ? "/leaderboard/students/{$student->id}"
+            : "/admin/students/{$student->id}";
 
         return Inertia::render('Students/Show', [
             'student' => $student->only(['id', 'name', 'student_id', 'class_name', 'college', 'grade']),
-            'summary' => $this->scores->studentSummary($student, $period['semester_ids']),
+            'summary' => $this->scores->studentSummary($student, $semesterIds),
             'period' => $period,
+            'detailUrl' => $detailUrl,
         ]);
     }
 

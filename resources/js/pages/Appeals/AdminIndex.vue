@@ -17,6 +17,7 @@ import { usePageSize } from '@/composables/usePageSize';
 const props = defineProps({
     appeals: { type: Object, required: true },
     semesters: { type: Array, default: () => [] },
+    classes: { type: Array, default: () => [] },
     counts: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
     perPage: { type: [String, Number], default: '20' },
@@ -110,6 +111,12 @@ function changePage(url) {
                 <select name="semester_id" class="input !w-auto min-w-[150px]" :value="filters.semester_id ?? ''">
                     <option value="">全部学期</option>
                     <option v-for="semester in semesters" :key="semester.id" :value="semester.id">{{ semester.name }}</option>
+                </select>
+                <select v-if="classes.length" name="class_id" class="input !w-auto min-w-[150px]" :value="filters.class_id ?? ''">
+                    <option value="">全部班级</option>
+                    <option v-for="item in classes" :key="item.id" :value="item.id">
+                        {{ item.name }}{{ item.grade ? ` · ${item.grade}` : '' }}
+                    </option>
                 </select>
                 <div class="relative">
                     <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

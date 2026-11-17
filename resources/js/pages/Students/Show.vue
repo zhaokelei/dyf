@@ -14,10 +14,11 @@ const props = defineProps({
     student: { type: Object, required: true },
     summary: { type: Object, required: true },
     period: { type: Object, required: true },
+    detailUrl: { type: String, required: true },
 });
 
 function changePeriod(value) {
-    router.get(`/admin/students/${props.student.id}`, { period: value }, {
+    router.get(props.detailUrl, { period: value }, {
         preserveState: true,
         preserveScroll: true,
     });
@@ -28,9 +29,9 @@ function changePeriod(value) {
     <Head :title="`${student.name} · 德育分明细`" />
 
     <AuthenticatedLayout>
-        <PageHeader :title="`${student.name} 的德育分`" description="学生个人成绩明细与类别汇总">
+        <PageHeader :title="`${student.name} 的德育分`" :description="`${period.label} · 德育分明细与类别汇总`">
             <template #actions>
-                <PeriodSelect :model-value="period.value" @update:model-value="changePeriod" />
+                <PeriodSelect :model-value="period.value" include-all @update:model-value="changePeriod" />
                 <Link href="/leaderboard" class="btn-secondary">
                     <ArrowLeft class="h-4 w-4" />
                     返回排行榜
@@ -70,7 +71,10 @@ function changePeriod(value) {
                     </div>
                     <div>
                         <dt class="text-xs text-slate-400">记录数</dt>
-                        <dd class="mt-1 text-slate-700">{{ summary.record_count }} 条</dd>
+                        <dd class="mt-1 text-slate-700">
+                            {{ summary.record_count }} 条
+                            <span v-if="summary.revoked_count" class="text-xs text-slate-400">（已撤销 {{ summary.revoked_count }} 条）</span>
+                        </dd>
                     </div>
                 </dl>
 

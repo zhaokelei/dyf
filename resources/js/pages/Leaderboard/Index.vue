@@ -347,7 +347,7 @@ const exportUrl = computed(() => {
                         </span>
                         <component :is="index === 0 ? Trophy : Medal" :class="['h-5 w-5', index === 0 ? 'text-amber-500' : 'text-slate-300']" />
                     </div>
-                    <p class="mt-3 truncate text-sm font-semibold text-slate-800">{{ item.name }}</p>
+                    <Link :href="`/leaderboard/students/${item.id}`" class="mt-3 block truncate text-sm font-semibold text-slate-800 hover:text-brand-600">{{ item.name }}</Link>
                     <p class="truncate text-xs text-slate-400">{{ item.student_id }} · {{ item.class_name }}</p>
                     <p class="mt-3 text-2xl font-semibold text-slate-900">
                         {{ isAllMode ? item.total_score : item.period_score }}
@@ -362,8 +362,7 @@ const exportUrl = computed(() => {
                         {{ startRank + index + 1 }}
                     </span>
                     <div class="min-w-0 flex-1">
-                        <Link v-if="isAdmin" :href="`/admin/students/${item.id}`" class="block truncate text-sm font-medium text-slate-800">{{ item.name }}</Link>
-                        <span v-else class="block truncate text-sm font-medium text-slate-800">{{ item.name }}</span>
+                        <Link :href="`/leaderboard/students/${item.id}`" class="block truncate text-sm font-medium text-slate-800 hover:text-brand-600">{{ item.name }}</Link>
                         <p class="truncate text-xs text-slate-400">{{ item.student_id }} · {{ item.class_name }}</p>
                     </div>
                     <div class="shrink-0 text-right">
@@ -410,8 +409,7 @@ const exportUrl = computed(() => {
                                 </span>
                             </td>
                             <td>
-                                <Link v-if="isAdmin" :href="`/admin/students/${item.id}`" class="font-medium text-slate-800 hover:text-brand-600">{{ item.name }}</Link>
-                                <span v-else class="font-medium text-slate-800">{{ item.name }}</span>
+                                <Link :href="`/leaderboard/students/${item.id}`" class="font-medium text-slate-800 hover:text-brand-600">{{ item.name }}</Link>
                                 <p class="text-xs text-slate-400">{{ item.student_id }}</p>
                             </td>
                             <td class="hidden whitespace-nowrap sm:table-cell">{{ item.class_name }}</td>

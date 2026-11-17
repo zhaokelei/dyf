@@ -36,7 +36,7 @@ class HandleInertiaRequests extends Middleware
             'can_create_users' => $user->isAdmin() || $user->isCollegeAdmin(),
             'can_import_users' => $user->isAdmin(),
             'can_review' => $user->isManager(),
-            'can_review_groups' => $user->isAdmin() || $user->isCollegeAdmin(),
+            'can_review_groups' => $user->isManager(),
             'can_manage_scores' => $user->isManager(),
             'can_manage_manual' => $user->isAdmin(),
             'can_view_statistics' => $user->isManager(),

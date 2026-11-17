@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appeal;
+use App\Models\SchoolClass;
 use App\Models\ScoreRecord;
 use App\Models\Semester;
 use App\Services\AppealService;
@@ -96,6 +97,19 @@ class AppealController extends Controller
         $search = $request->input('search');
         $page = PageSize::resolve($request, 20);
 
+        $classQuery = SchoolClass::query()->orderBy('grade')->orderBy('name');
+
+        if (! $user->isAdmin()) {
+            $classQuery->whereIn('id', $this->access->classIds($user) ?? []);
+        }
+
+        $classes = $classQuery->get(['id', 'name', 'grade']);
+        $classId = $request->integer('class_id') ?: null;
+
+        if ($classId !== null && ! $classes->contains('id', $classId)) {
+            $classId = null;
+        }
+
         $appeals = Appeal::query()
             ->tap(fn ($q) => $this->access->scopeAppeals($q, $user))
             ->with([
@@ -107,6 +121,7 @@ class AppealController extends Controller
             ])
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->when($semesterId, fn ($q) => $q->whereHas('scoreRecord', fn ($sub) => $sub->where('semester_id', $semesterId)))
+            ->when($classId, fn ($q) => $q->whereHas('user', fn ($sub) => $sub->where('class_id', $classId)))
             ->when($search, function ($q, $value) {
                 $q->whereHas('user', function ($sub) use ($value) {
                     $sub->where('name', 'like', "%{$value}%")
@@ -127,6 +142,7 @@ class AppealController extends Controller
         return Inertia::render('Appeals/AdminIndex', [
             'appeals' => $appeals,
             'semesters' => Semester::orderByDesc('academic_year')->orderBy('term')->get(['id', 'name', 'is_current']),
+            'classes' => $classes,
             'perPage' => $page['per_page'],
             'counts' => [
                 'pending' => (int) ($counts['pending'] ?? 0),
@@ -136,6 +152,7 @@ class AppealController extends Controller
             'filters' => [
                 'status' => $status,
                 'semester_id' => $semesterId,
+                'class_id' => $classId,
                 'search' => $search,
             ],
         ]);

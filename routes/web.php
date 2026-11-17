@@ -97,6 +97,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:admin,teacher,college_admin,class_admin')->group(function () {
         Route::get('/leaderboard', [ScoreController::class, 'leaderboard'])->name('leaderboard.index');
+        Route::get('/leaderboard/students/{student}', [ScoreController::class, 'studentDetail'])->name('leaderboard.students.show');
     });
 
     Route::middleware('role:admin,college_admin,class_admin')->prefix('admin')->group(function () {
@@ -109,6 +110,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/review/leaderboard/export', [ReviewController::class, 'exportReviewerLeaderboard'])->name('review.leaderboard.export');
         Route::post('/review/bulk', [ReviewController::class, 'bulk'])->name('review.bulk');
         Route::delete('/applications/{application}', [ReviewController::class, 'destroyPersonal'])->name('review.applications.destroy');
+        Route::put('/group-applications/{groupApplication}/approve', [ReviewController::class, 'approveGroup'])->name('review.groups.approve');
+        Route::put('/group-applications/{groupApplication}/reject', [ReviewController::class, 'rejectGroup'])->name('review.groups.reject');
+        Route::put('/group-applications/{groupApplication}/cancel', [ReviewController::class, 'cancelGroupApproval'])->name('review.groups.cancel');
         Route::delete('/group-applications/{groupApplication}', [ReviewController::class, 'destroyGroup'])->name('review.groups.destroy');
         Route::post('/deductions', [ScoreController::class, 'storeDeduction'])->name('admin.deductions.store');
 
@@ -136,10 +140,6 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('role:admin,college_admin')->prefix('admin')->group(function () {
-        Route::put('/group-applications/{groupApplication}/approve', [ReviewController::class, 'approveGroup'])->name('review.groups.approve');
-        Route::put('/group-applications/{groupApplication}/reject', [ReviewController::class, 'rejectGroup'])->name('review.groups.reject');
-        Route::put('/group-applications/{groupApplication}/cancel', [ReviewController::class, 'cancelGroupApproval'])->name('review.groups.cancel');
-
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
 
         Route::get('/organization', [OrganizationController::class, 'index'])->name('organization.index');

@@ -406,7 +406,25 @@ class AccessScope
             return true;
         }
 
-        return $this->isCollegeAdmin($user) && $this->canAccessGroup($user, $application);
+        return ($this->isCollegeAdmin($user) || $this->isClassAdmin($user))
+            && $this->canAccessGroup($user, $application);
+    }
+
+    public function canViewStudentProfile(User $user, User $student): bool
+    {
+        if ($student->role !== 'student') {
+            return false;
+        }
+
+        if ($this->isSuper($user)) {
+            return true;
+        }
+
+        if ($this->isManager($user)) {
+            return $this->canAccessStudent($user, $student);
+        }
+
+        return $user->isTeacher();
     }
 
     public function canViewGroup(User $user, GroupApplication $application): bool

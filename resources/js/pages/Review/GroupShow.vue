@@ -207,8 +207,8 @@ function submitDelete() {
             <Card v-else-if="isPending" title="只读查看">
                 <div class="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
                     {{ officerMode
-                        ? '班干部可查看本班集体申请，审核操作由学院管理员完成。'
-                        : '辅导员可查看涉及所管辖班级的集体申请，审核操作由学院管理员完成。' }}
+                        ? '班干部可查看本班集体申请，审核操作由辅导员或学院管理员完成。'
+                        : '当前账号可查看该集体申请，但没有审核权限。' }}
                 </div>
             </Card>
 

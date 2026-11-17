@@ -47,6 +47,13 @@ class ReviewController extends Controller
             abort_unless($this->access->isClassOfficer($user), 403, '你尚未被任命为班干部。');
         }
 
+        $classOptions = $this->filterClassOptions($user, $officerMode);
+        $classId = $request->integer('class_id') ?: null;
+
+        if ($classId !== null && ! $classOptions->contains('id', $classId)) {
+            $classId = null;
+        }
+
         $personalQuery = ScoreApplication::query();
         $officerMode
             ? $this->access->scopeOfficerApplications($personalQuery, $user)
@@ -57,6 +64,7 @@ class ReviewController extends Controller
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->when($semesterId, fn ($q) => $q->where('semester_id', $semesterId))
             ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
+            ->when($classId, fn ($q) => $q->whereHas('user', fn ($sub) => $sub->where('class_id', $classId)))
             ->when($search, function ($q, $value) {
                 $q->whereHas('user', function ($sub) use ($value) {
                     $sub->where('name', 'like', "%{$value}%")
@@ -86,6 +94,7 @@ class ReviewController extends Controller
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->when($semesterId, fn ($q) => $q->where('semester_id', $semesterId))
             ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
+            ->when($classId, fn ($q) => $q->whereHas('members.student', fn ($sub) => $sub->where('class_id', $classId)))
             ->when($search, function ($q, $value) {
                 $q->where(function ($sub) use ($value) {
                     $sub->where('title', 'like', "%{$value}%")
@@ -117,6 +126,7 @@ class ReviewController extends Controller
             ->when($manualStatus === 'revoked', fn ($q) => $q->whereNotNull('revoked_at'))
             ->when($semesterId, fn ($q) => $q->where('semester_id', $semesterId))
             ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
+            ->when($classId, fn ($q) => $q->whereHas('user', fn ($sub) => $sub->where('class_id', $classId)))
             ->when($search, function ($q, $value) {
                 $q->whereHas('user', function ($sub) use ($value) {
                     $sub->where('name', 'like', "%{$value}%")
@@ -137,6 +147,7 @@ class ReviewController extends Controller
             'perPage' => $page['per_page'],
             'semesters' => Semester::orderByDesc('academic_year')->orderBy('term')->get(['id', 'name', 'is_current']),
             'categories' => ScoreCategory::orderBy('sort_order')->get(['id', 'name', 'code', 'type']),
+            'classes' => $classOptions,
             'counts' => [
                 ...$this->counts($user, $officerMode),
                 'manual_total' => $manual->total(),
@@ -155,6 +166,7 @@ class ReviewController extends Controller
                 'status' => $status,
                 'semester_id' => $semesterId,
                 'category_id' => $categoryId,
+                'class_id' => $classId,
                 'search' => $search,
                 'manual_status' => $manualStatus,
                 'board_class_id' => $request->integer('board_class_id') ?: null,
@@ -165,6 +177,19 @@ class ReviewController extends Controller
     private function isOfficerMode(Request $request): bool
     {
         return $request->routeIs('officer.*');
+    }
+
+    private function filterClassOptions(User $user, bool $officerMode): \Illuminate\Support\Collection
+    {
+        $query = SchoolClass::query()->orderBy('grade')->orderBy('name');
+
+        if ($officerMode) {
+            $query->whereIn('id', $this->access->officerClassIds($user));
+        } elseif (! $user->isAdmin()) {
+            $query->whereIn('id', $this->access->classIds($user) ?? []);
+        }
+
+        return $query->get(['id', 'name', 'grade']);
     }
 
     private function officerClassNames($user): array
@@ -649,7 +674,7 @@ class ReviewController extends Controller
             $data['review_comment'] = null;
         }
 
-        if ($data['type'] === 'group' && ! $request->user()->isAdmin() && ! $request->user()->isCollegeAdmin()) {
+        if ($data['type'] === 'group' && ! $request->user()->isManager()) {
             abort(403);
         }
 

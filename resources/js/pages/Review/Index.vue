@@ -30,6 +30,7 @@ const props = defineProps({
     manual: { type: Object, required: true },
     semesters: { type: Array, default: () => [] },
     categories: { type: Array, default: () => [] },
+    classes: { type: Array, default: () => [] },
     counts: { type: Object, required: true },
     leaderboard: { type: Object, default: () => ({ available: false }) },
     deduction: { type: Object, default: () => ({ available: false }) },
@@ -497,6 +498,12 @@ function submitBulk() {
                 <select name="category_id" class="input !w-auto min-w-[120px]" :value="filters.category_id ?? ''">
                     <option value="">全部类别</option>
                     <option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option>
+                </select>
+                <select v-if="classes.length" name="class_id" class="input !w-auto min-w-[150px]" :value="filters.class_id ?? ''">
+                    <option value="">全部班级</option>
+                    <option v-for="item in classes" :key="item.id" :value="item.id">
+                        {{ item.name }}{{ item.grade ? ` · ${item.grade}` : '' }}
+                    </option>
                 </select>
                 <div class="relative">
                     <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
